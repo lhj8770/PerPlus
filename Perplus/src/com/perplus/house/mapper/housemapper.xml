@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-
+<!-- WebContent-ete-lee.sqlにテストコード -->
 <mapper namespace="house">
 	<sql id="default-house-select">
 		select 
@@ -71,7 +71,7 @@
 		<result column="HOUSE_MARKER_Y" property="houseMarkerY"/>
 		<result column="HOUSE_MARKER_CONSTANT" property="houseMarkerConstant"/>
 	</resultMap>
-	<!-- 아마 houseZzimList는 하나만 select 될 것이다(해당 회원이 해당 숙소에 찜을 했는가만 필요하기 때문에) -->
+	<!-- houseZzimListは一つだけがselectされる(会員が宿所をブックマーク下かどうかだけが必要)-->
 	<resultMap type="housevo" id="house-housefilter-shutdown-checklist-housezzim-join-resultmap" extends="house-basic-resultmap">
 		<association property="houseFilter"  javaType="HouseFilterVo" resultMap="housefilter.housefilter-shutdown-checklist-join-resultmap"/>
 		<collection property="houseZzimList" ofType="HouseZzimVo">
@@ -108,14 +108,14 @@
 		and c.HOUSE_SERIAL(+) = h.HOUSE_SERIAL
 		and z.MEMBER_EMAIL(+) = h.MEMBER_EMAIL
 	</select>
-	<!-- 최초 집이 생성될때 4개의 값이 넘어오며(첫 Serial과 Status는 자동 생성된다.)6개의 값이 저장이 된다. necessary condition을 제외한 모든것은 N.N이다 -->
+	<!-- 最初house登録するとき四つのパラメータがきて(初めてのSerialとStatusは自動的に作られる。)六個の値が保存される。necessary conditionを除外したすべてはN.N	-->
 	<insert id="insertHouseDefault" parameterType="housevo">
 	<selectKey resultType="_int" keyProperty="houseSerial" order="BEFORE">
 		select house_seq.nextval from dual
 	</selectKey> 
 		insert into HOUSE values(#{houseSerial},#{memberEmail},0,#{houseTitle},#{houseContent},#{houseNecessaryCondition},0,0,0,0)	
 	</insert>
-	<!-- 전체적인 집의 수정 (기존의 db를 select해와 필요한 부분만 채워서 재 전송)-->
+	<!-- 全体的なhouseの修正 (update必要なものだけを選んで保存)-->
 	<update id="updateHouse" parameterType ="housevo">
 		update HOUSE set 
 		HOUSE_REGISTER_STATUS = #{houseRegisterStatus}, 
@@ -130,21 +130,21 @@
 		HOUSE_MARKER_CONSTANT = #{houseMarkerConstant}
 		where house_serial=#{houseSerial}
 	</update>
-	<!-- 지울때는 HouseSerial을 가지고 지우도록 한다. -->
+	<!-- 削除するときはHouseSerialで -->
 	<delete id="deleteHouseByHouseSerial" parameterType="_int">
 		delete from HOUSE where HOUSE_SERIAL = #{value}
 	</delete>
-	<!-- 단일 집을 select 할때 HouseSerial을 가지고 조회를 한다. -->
+	<!-- 一つのhouseをselectするときにはＨouseSerialで -->
 	<select id="selectHouseByHouseSerial" parameterType="_int" resultType="HouseVo">
 		<include refid="default-house-select"/>
 		where HOUSE_SERIAL = #{value}
 	</select>
-	<!-- 해당 회원이 등록한 집을 select할때 로그인한 회원의 Email을 가지고 조회를 한다 -->
+	<!--　会員が登録したhouseをselectするときログインした会員のemailで -->
 	<select id="selectHouseListByMemberEmail" parameterType="String" resultType="HouseVo">
 		<include refid="default-house-select"/>
 		where MEMBER_EMAIL = #{value}
 	</select>
-	<!-- 필터 검출 후 숙소 리스트를 보여주는 곳에서 사용 -->
+	<!--　フィルターでマーカーを出力した場合にそのマーカーを選択したとき宿所のリストを出力するところで使う -->
 	<select id="selectHouseWithPictureBySerial" parameterType="_int" resultType="HouseVo" resultMap="house-housePicture-join-resultmap">
 		<include refid="house-housePicture-join"/>
 		where h.HOUSE_SERIAL = #{value}
@@ -156,7 +156,7 @@
 		and p.HOUSE_SERIAL(+) = h.HOUSE_SERIAL
 		and f.house_serial(+) = h.house_serial
 	</select>
-	<!-- 필터를 통해 등록한 집을 select -> 각 필터 객체들을 hashmap으로 받아 각 where문을 통해 비교-->
+	<!-- フィルターをもって登録されているhouseをselect→フィルターinstanceたちをhashmapのパラメータでもらい分けているwhere文をもって比較	-->
 	<!-- 
 		HashMap List
 		1. endDay , startDay
@@ -164,36 +164,35 @@
 		3. wholeRoom , privateRoom , sharedRoom -> range
 		4. housePriceMin, housePriceMax
 		5-1. bedRoomNumber , bathRoomNumber, bedNumber
-		5-2. 각 체크리스트 key값 (코드테이블 참조)
+		5-2.　key value of each checklist		
 	 -->
 	<select id="selectHouseListByFilter" parameterType="hashmap" resultType="_int">
 <!-- 		<include refid="filter-house-select"/> --> 
-		<!-- 최종 HOUSE 테이블의 값을 select -->
+		<!-- 最終houseテーブルの値をselect -->
 		select HOUSE_SERIAL houseSerial
 		from HOUSE 
 		where HOUSE_SERIAL IN
 		(
-			<!-- 모든 탈락을 이겨낸 최종적 HOUSEFILTER() 의 HOUSE_SERIAL을 select -->
+			<!--　すべてのフィルター選択で最終的に残ったhouseのHouse＿Serialをselect -->
 			select HOUSE_SERIAL
-			<!-- HOUSEFILTER에 join되 있는 CHECKLIST , SHUTDOWN의 탈락 여부를 통해 먼저 HOUSEFILTER 범위를 좁혀낸 다음에 HOUSEFILTER 자신의 -->
+			<!--　HOUSEFILTERにjoinされているCHECKLIST、SHUTDOWNの脱落可否によって先にHOUSEFILTERの範囲を絞る -->
 			from (
 				<include refid="housefilter.default-house-filter-select-forDB"/>
-				<!-- 여기서 where 조건으로 오게되는 것은 필터로 거른 CHECKLIST 와 SHUTDOWN 의  공통되는 HOUSESERIAL
-				 중복 제거는 SELECT DISTINCT, 공통분모 찾기는 HAVING COUNT(HOUSE_SERIAL) = 2 로 해결
+				<!--　ここのwhere条件にできるものはフィルターで除いたCHECKLISTとSHUTDOWNの共通するHOUSESERIAL。
+				重複削除はSELECT　DISTINCT、公分母探しはHAVING　COUNT(HOUSE＿SERIAL)　=　2　で解決 
 				 -->
 				 <!--
-				 	아래의 코드가 endDay 와 StartDay 사이에 SHUTDOWN날이 없는 HOUSE_SERIAL 검출 코드이다
-				 	(if 로 endDay startDay 검출 필요)
+				 	下のコードはendDayとStartDay間のSHUTDOWNの日がないHOUSE_SERIAL検出コード				 	
+				 	(ifで endDay startDay検出必要)
 				 	-->
-				 	<!-- 
+				 	<!-- テストコード
 				 	select DISTINCT HOUSE_SERIAL from SHUTDOWN
 					where HOUSE_SERIAL NOT IN (
 						select DISTINCT HOUSE_SERIAL from SHUTDOWN
 						where SHUTDOWN_DATE between '2015-10-12' and '2015-10-14'
 					)
 				  -->
-				  <!-- 아래가 필터를 검출한 HOUSE_SERIAL 중 중복 값 만을 출력 한 것이다. 
-				  -->
+				  <!--　下はフィルターで検出したHOUSE_SERIAL の中で重複した値だけを出力したもの。  -->
 				<where>	
 					<if test="!(endDay == null and startDay == null and list == null and listSize == null)">
 						HOUSE_SERIAL in (
@@ -203,7 +202,7 @@
 						
 						<choose>
 							<when test="endDay != null and startDay != null">
-							<!-- SHUTDOWN >> 해당 기간안에 있는 날을 미리 select 한 다음 그 HOUSE_SERIAL들을 배제한 나머지를 select-->
+							<!-- SHUTDOWN >>　該当する機関の中にある日を先にselectした後そのHOUSE_SERIALたちを除いた残りをselect	-->
 					  		select DISTINCT HOUSE_SERIAL 
 						  	from SHUTDOWN
 							where HOUSE_SERIAL NOT IN (
@@ -226,8 +225,8 @@
 								UNION ALL
 							</if>
 							<if test ="list!=null and listSize != 0">
-							<!-- CHECKLIST >> 사용자가 체크한 리스트를 만족하는 HOUSE의 SERIAL를 집계한 다음 최종적으로 
-								집계된 SERIAL의 개수와 사용자 선택 리스트의 개수가 같은 것을 조건 만족하는 HOUSE로 인정
+							<!-- CHECKLIST >>　 
+							ユーザーがチェックしたリストを満足するhouseのSERIALの数を取った後ユーザーの選択リストの数が同じものが探しているhouse							
 							--> 
 								select HOUSE_SERIAL 
 								from(
@@ -242,7 +241,7 @@
 							)
 							</if>
 							
-							<!-- 만약 두 조건의 HOUSESERIAL이 중복된다면 모든 추가 필터의 조건을 만족하는 HOUSE로 가정한다. -->
+							<!--　もし二つの条件のHOUSESERIALが重複したらすべての追加フィルターの条件を満たすhouseだと認識する。 -->
 							<if test="(endDay !=null or startDay !=null) and list !=null and listSize!= 0">
 							group by HOUSE_SERIAL HAVING COUNT(*)>1
 							</if>
@@ -258,22 +257,24 @@
 					</if>
 				</where>
 			)
-			<!-- 최 외각의 From 절 (추가필터) 끝 -->
+			<!--　アウトコーナーのFrom(追加フィルター)終わり 
+			 -->
 			<where>
-				<!-- 여기부터가 HOUSEFILTER와 HOUSE가 가진 값을 통해 필터링이 일어나는 곳 -->
+				<!--　ここからHOUSEFILTERとHOUSEが持っている値をもってフィルタリングが行われる。 
+				 -->
 				
-				<!-- currentTime은 default로 언제나 넘어온다. -->
-				<!-- 1. endDay 만이 선택되어서 넘어 왔을때 -->
+				<!--　currentTimeはdefaultの値としていつも与えられる。 -->
+				<!-- 1. endDay だけが選択されて与えられた場合 -->
 				<if test ="endDay != null and startDay == null">
 					and ADD_MONTHS((select sysdate from dual),HOUSEFILTER_RESERVATION_TERM) <![CDATA[>=]]> CAST(#{endDay} as date)
 					and ((select sysdate from dual) + (HOUSEFILTER_CHECKIN_TERM)) <![CDATA[<=]]> CAST(#{endDay} as date)
 				</if> 
-				<!-- 2. startDay 만이 선택되어서 넘어 왔을때 -->
+				<!-- 2. startDay だけが選択されて与えられた場合 -->
 				<if test ="endDay == null and startDay != null">
 					and ADD_MONTHS((select sysdate from dual),HOUSEFILTER_RESERVATION_TERM) <![CDATA[>=]]> CAST(#{startDay} as date)
 					and ((select sysdate from dual) + (HOUSEFILTER_CHECKIN_TERM)) <![CDATA[<=]]> CAST(#{startDay} as date)
 				</if>
-				<!-- 3. 둘다 선택 되어서 넘어 왔을때 -->
+				<!-- 3. 二つすべてが与えられた場合 -->
 				<if test ="endDay != null and startDay != null">
 					and (CAST(#{endDay} as date)-CAST(#{startDay} as date)) <![CDATA[>=]]>  HOUSEFILTER_BAK_MIN
 					and (CAST(#{endDay} as date)-CAST(#{startDay} as date)) <![CDATA[<=]]>  HOUSEFILTER_BAK_MAX
@@ -284,7 +285,8 @@
 				<if test ="guestNumber != null">
 					and HOUSEFILTER_GUEST_NUMBER >= #{guestNumber}
 				</if>
-				<!--  집 제공 범위  사실상 default 집전체는 모든 값 출력이므로 따로 조건문을 내줄 필요가 없다.-->
+				<!--　houseの提供できる範囲→defaultは全体提供で他の条件は不必要  
+				-->
 				<if test ="range != null and !range.equals('집전체')">
 					and HOUSEFILTER_RANGE = #{range}
 				</if>
@@ -303,7 +305,7 @@
 			</where>
 		)
 	</select>
-<!-- 맵의 범위 지정 , 필터를 통한 select-->	
+<!--　マップの範囲指定、フィルタリングでselect-->	
 	<select id ="selectHouseBySectionAndFilter" parameterType="hashMap" resultType="houseVo" resultMap="house-housefilter-housepicture-join-resultmap">
 		<include refid="house-houseFilter-housePicture"/> 
 		where
@@ -311,32 +313,32 @@
 		in
 		(
 				<!-- 		<include refid="filter-house-select"/> --> 
-			<!-- 최종 HOUSE 테이블의 값을 select -->
+			<!--　最終HOUSEテーブルの値をselect	 -->
 			select HOUSE_SERIAL houseSerial
 			from HOUSE 
 			where HOUSE_SERIAL IN
 			(
-				<!-- 모든 탈락을 이겨낸 최종적 HOUSEFILTER() 의 HOUSE_SERIAL을 select -->
+				<!--　すべてのフィルタリングを除いたHOUSEFILTER()のHOUSE_SERIALをselect -->
 				select HOUSE_SERIAL
-				<!-- HOUSEFILTER에 join되 있는 CHECKLIST , SHUTDOWN의 탈락 여부를 통해 먼저 HOUSEFILTER 범위를 좁혀낸 다음에 HOUSEFILTER 자신의 -->
+				<!--　 HOUSEFILTERにjoinされているCHECKLIST、SHUTDOWNの脱落有無でHOUSEFILTERの範囲を絞る
+				 -->
 				from (
 					<include refid="housefilter.default-house-filter-select-forDB"/>
-					<!-- 여기서 where 조건으로 오게되는 것은 필터로 거른 CHECKLIST 와 SHUTDOWN 의  공통되는 HOUSESERIAL
-					 중복 제거는 SELECT DISTINCT, 공통분모 찾기는 HAVING COUNT(HOUSE_SERIAL) = 2 로 해결
+					<!--　ここのwhere条件にできるものはフィルターで除いたCHECKLISTとSHUTDOWNの共通するHOUSESERIAL。
+						重複削除はSELECT　DISTINCT、公分母探しはHAVING　COUNT(HOUSE＿SERIAL)　=　2　で解決 
 					 -->
 					 <!--
-					 	아래의 코드가 endDay 와 StartDay 사이에 SHUTDOWN날이 없는 HOUSE_SERIAL 검출 코드이다
-					 	(if 로 endDay startDay 검출 필요)
-					 	-->
-					 	<!-- 
-					 	select DISTINCT HOUSE_SERIAL from SHUTDOWN
+				 		下のコードはendDayとStartDay間のSHUTDOWNの日がないHOUSE_SERIAL検出コード				 	
+				 		(ifで endDay startDay検出必要)
+				 	-->
+				 	<!-- テストコード
+				 		select DISTINCT HOUSE_SERIAL from SHUTDOWN
 						where HOUSE_SERIAL NOT IN (
-							select DISTINCT HOUSE_SERIAL from SHUTDOWN
-							where SHUTDOWN_DATE between '2015-10-12' and '2015-10-14'
+						select DISTINCT HOUSE_SERIAL from SHUTDOWN
+						where SHUTDOWN_DATE between '2015-10-12' and '2015-10-14'
 						)
 					  -->
-					  <!-- 아래가 필터를 검출한 HOUSE_SERIAL 중 중복 값 만을 출력 한 것이다. 
-					  -->
+				 	 <!--　下はフィルターで検出したHOUSE_SERIAL の中で重複した値だけを出力したもの。  -->
 					<where>	
 						<if test="!(endDay == null and startDay == null and list == null and listSize == null)">
 							HOUSE_SERIAL in (
@@ -346,7 +348,7 @@
 							
 							<choose>
 								<when test="endDay != null and startDay != null">
-								<!-- SHUTDOWN >> 해당 기간안에 있는 날을 미리 select 한 다음 그 HOUSE_SERIAL들을 배제한 나머지를 select-->
+								<!-- SHUTDOWN >>　該当する機関の中にある日を先にselectした後そのHOUSE_SERIALたちを除いた残りをselect	-->
 						  		select DISTINCT HOUSE_SERIAL 
 							  	from SHUTDOWN
 								where HOUSE_SERIAL NOT IN (
@@ -369,9 +371,6 @@
 									UNION ALL
 								</if>
 								<if test ="list!=null and listSize != 0">
-								<!-- CHECKLIST >> 사용자가 체크한 리스트를 만족하는 HOUSE의 SERIAL를 집계한 다음 최종적으로 
-									집계된 SERIAL의 개수와 사용자 선택 리스트의 개수가 같은 것을 조건 만족하는 HOUSE로 인정
-								--> 
 									select HOUSE_SERIAL 
 									from(
 										select HOUSE_SERIAL 
@@ -385,7 +384,6 @@
 								)
 								</if>
 								
-								<!-- 만약 두 조건의 HOUSESERIAL이 중복된다면 모든 추가 필터의 조건을 만족하는 HOUSE로 가정한다. -->
 								<if test="(endDay !=null or startDay !=null) and list !=null and listSize!= 0">
 								group by HOUSE_SERIAL HAVING COUNT(*)>1
 								</if>
@@ -401,22 +399,15 @@
 						</if>
 					</where>
 				)
-				<!-- 최 외각의 From 절 (추가필터) 끝 -->
 				<where>
-					<!-- 여기부터가 HOUSEFILTER와 HOUSE가 가진 값을 통해 필터링이 일어나는 곳 -->
-					
-					<!-- currentTime은 default로 언제나 넘어온다. -->
-					<!-- 1. endDay 만이 선택되어서 넘어 왔을때 -->
 					<if test ="endDay != null and startDay == null">
 						and ADD_MONTHS((select sysdate from dual),HOUSEFILTER_RESERVATION_TERM) <![CDATA[>=]]> CAST(#{endDay} as date)
 						and ((select sysdate from dual) + (HOUSEFILTER_CHECKIN_TERM)) <![CDATA[<=]]> CAST(#{endDay} as date)
 					</if> 
-					<!-- 2. startDay 만이 선택되어서 넘어 왔을때 -->
 					<if test ="endDay == null and startDay != null">
 						and ADD_MONTHS((select sysdate from dual),HOUSEFILTER_RESERVATION_TERM) <![CDATA[>=]]> CAST(#{startDay} as date)
 						and ((select sysdate from dual) + (HOUSEFILTER_CHECKIN_TERM)) <![CDATA[<=]]> CAST(#{startDay} as date)
 					</if>
-					<!-- 3. 둘다 선택 되어서 넘어 왔을때 -->
 					<if test ="endDay != null and startDay != null">
 						and (CAST(#{endDay} as date)-CAST(#{startDay} as date)) <![CDATA[>=]]>  HOUSEFILTER_BAK_MIN
 						and (CAST(#{endDay} as date)-CAST(#{startDay} as date)) <![CDATA[<=]]>  HOUSEFILTER_BAK_MAX
@@ -427,7 +418,6 @@
 					<if test ="guestNumber != null">
 						and HOUSEFILTER_GUEST_NUMBER >= #{guestNumber}
 					</if>
-					<!--  집 제공 범위  사실상 default 집전체는 모든 값 출력이므로 따로 조건문을 내줄 필요가 없다.-->
 					<if test ="range != null and !range.equals('집전체')">
 						and HOUSEFILTER_RANGE = #{range}
 					</if>
@@ -469,9 +459,9 @@
 		)
 	</select>
 	<!-- 
-		parameter로 
-		1. 해당 house의 Serial   (serial)
-		2. 클릭한 날짜 필요		   (date)
+		parameterで 
+		1. 該当するhouseのSerial   (serial)
+		2. クリックしたときの日が必要		   (date)
 	 -->
 	<select id="reservationAbleTerm" parameterType="hashmap" resultType="_int">
 	
