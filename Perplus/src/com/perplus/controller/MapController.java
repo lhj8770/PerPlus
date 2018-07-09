@@ -79,9 +79,9 @@ public class MapController {
 		modelMap.put("pageBean", retMap.get("pageBean"));
 		return "reviewdetailPage.hotplacetiles";
 	}
-	//1. 최초 로딩때 location , 시작일, 종료일, 인원수 가 넘어오게 된다. 
-	// -> ajax를 통해 일이 이루어 져야 하며 지도 상의 마커를 불러오는 것을 먼저 수행한다. 
-	// 위와 상관없이 Map으로 넘어온 여러 값들을 Map<String, Object> map= new HashMap<>(); 와 같은 형식에 넣어서 보낸다.
+	//1. 最初のロードの時location,startday、endday,人数が来る。 
+	// ->　ajaxを通してすべて行われてマップにマーカーを呼んでくることを先にする。 
+	// そして上とは関係なくマップの色んな値をMap<String, Object> map= new HashMap<>();の形式で送る。
 	
 	//	HashMap List
 	//	1. endDay , startDay
